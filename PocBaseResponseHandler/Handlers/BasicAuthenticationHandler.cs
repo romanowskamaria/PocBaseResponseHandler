@@ -6,17 +6,13 @@ using Microsoft.Extensions.Options;
 
 public class BasicAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-    public BasicAuthenticationHandler(
-        IOptionsMonitor<AuthenticationSchemeOptions> options,
-        ILoggerFactory logger,
-        UrlEncoder encoder,
-        ISystemClock clock)
+    public BasicAuthenticationHandler(ISystemClock clock, UrlEncoder encoder, ILoggerFactory logger, IOptionsMonitor<AuthenticationSchemeOptions> options)
         : base(options, logger, encoder, clock)
     {
     }
 
-    protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
+    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        return AuthenticateResult.Fail("Missing");
+        return Task.FromResult(AuthenticateResult.Fail("Missing"));
     }
 }

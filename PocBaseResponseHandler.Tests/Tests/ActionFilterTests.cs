@@ -1,20 +1,20 @@
-namespace PocBaseResponseHandler.Tests;
+namespace PocBaseResponseHandler.Tests.Tests;
 
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Threading.Tasks;
-using Factories;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Models;
+using PocBaseResponseHandler.Models;
+using PocBaseResponseHandler.Tests.Factories;
+using PocBaseResponseHandler.Tests.Factories.Extensions;
 
 [TestClass]
-public class WeatherForecastControllerTests
+public class ActionFilterTests
 {
     private readonly ApplicationFactory<Program> factory;
 
-    public WeatherForecastControllerTests()
+    public ActionFilterTests()
     {
         factory = new ApplicationFactory<Program>();
     }
@@ -97,7 +97,7 @@ public class WeatherForecastControllerTests
         var response = await client.DeleteAsync(url);
 
         //THEN
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.EnsureSuccessStatusCode();
 
         var responseToString = await response.Content.ReadAsStringAsync();
         var baseResponse = JsonSerializer.Deserialize<BaseResponse<object>>(responseToString);
@@ -120,57 +120,13 @@ public class WeatherForecastControllerTests
         var response = await client.PostAsJsonAsync(url, requestBody);
 
         //THEN
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        response.EnsureSuccessStatusCode();
 
         var responseToString = await response.Content.ReadAsStringAsync();
         var baseResponse = JsonSerializer.Deserialize<BaseResponse<object>>(responseToString);
         baseResponse.Should().NotBeNull();
         baseResponse?.Code.Should().Be("not_found");
         baseResponse?.Error.Should().Be("Requested resource has not been found");
-        baseResponse?.Response.Should().BeNull();
-        baseResponse?.ResponseType.Should().BeNull();
-    }
-
-    [TestMethod]
-    public async Task ExceptionAction_Should_Return_Valid_BaseResponse_With_Exception_Details()
-    {
-        //GIVEN
-        var client = factory.CreateClient();
-        const string url = "api/WeatherForecast/ExceptionAction";
-
-        //WHEN
-        var response = await client.GetAsync(url);
-
-        //THEN
-        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
-
-        var responseToString = await response.Content.ReadAsStringAsync();
-        var baseResponse = JsonSerializer.Deserialize<BaseResponse<object>>(responseToString);
-        baseResponse.Should().NotBeNull();
-        baseResponse?.Code.Should().Be("custom_exception_code");
-        baseResponse?.Error.Should().Be("This is custom exception");
-        baseResponse?.Response.Should().BeNull();
-        baseResponse?.ResponseType.Should().BeNull();
-    }
-
-    [TestMethod]
-    public async Task UnknownExceptionAction_Should_Return_Valid_BaseResponse_With_Exception_Details()
-    {
-        //GIVEN
-        var client = factory.CreateClient();
-        const string url = "api/WeatherForecast/UnknownExceptionAction";
-
-        //WHEN
-        var response = await client.GetAsync(url);
-
-        //THEN
-        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
-
-        var responseToString = await response.Content.ReadAsStringAsync();
-        var baseResponse = JsonSerializer.Deserialize<BaseResponse<object>>(responseToString);
-        baseResponse.Should().NotBeNull();
-        baseResponse?.Code.Should().Be("unknown_error");
-        baseResponse?.Error.Should().Be("An unhandled error has occurred");
         baseResponse?.Response.Should().BeNull();
         baseResponse?.ResponseType.Should().BeNull();
     }
@@ -187,7 +143,7 @@ public class WeatherForecastControllerTests
         var response = await client.PutAsJsonAsync(url, requestBody);
 
         //THEN
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.EnsureSuccessStatusCode();
 
         var responseToString = await response.Content.ReadAsStringAsync();
         var baseResponse = JsonSerializer.Deserialize<BaseResponse<object>>(responseToString);
@@ -198,45 +154,6 @@ public class WeatherForecastControllerTests
         baseResponse?.ResponseType.Should().BeNull();
     }
 
-    [TestMethod]
-    public async Task ForbidAction_Should_Return_Valid_BaseResponse_With_Forbidden_Code()
-    {
-        //GIVEN
-        var client = factory.CreateClient();
-        const string url = "api/WeatherForecast/ForbidAction";
-
-        //WHEN
-        var response = await client.GetAsync(url);
-
-        //THEN
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-
-        var responseToString = await response.Content.ReadAsStringAsync();
-        var baseResponse = JsonSerializer.Deserialize<BaseResponse<object>>(responseToString);
-        baseResponse.Should().NotBeNull();
-        baseResponse?.Code.Should().Be("forbidden");
-        baseResponse?.Error.Should().Be("Forbidden");
-        baseResponse?.Response.Should().BeNull();
-        baseResponse?.ResponseType.Should().BeNull();
-    }
-
-    [TestMethod]
-    public async Task UnauthorizedAttributeAction_Should_Have_Empty_Response_Body()
-    {
-        //GIVEN
-        var client = factory.CreateClient();
-        const string url = "api/WeatherForecast/UnauthorizedAttributeAction";
-        var requestBody = new ExampleRequest("test");
-
-        //WHEN
-        var response = await client.PutAsJsonAsync(url, requestBody);
-
-        //THEN
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-
-        var responseToString = await response.Content.ReadAsStringAsync();
-        responseToString.Should().BeNullOrEmpty();
-    }
 
     [TestMethod]
     public async Task InternalServerErrorAction_Should_Return_Valid_BaseResponse_With_InternalServerError_Code()
@@ -249,7 +166,7 @@ public class WeatherForecastControllerTests
         var response = await client.DeleteAsync(url);
 
         //THEN
-        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        response.EnsureSuccessStatusCode();
 
         var responseToString = await response.Content.ReadAsStringAsync();
         var baseResponse = JsonSerializer.Deserialize<BaseResponse<object>>(responseToString);
@@ -258,5 +175,112 @@ public class WeatherForecastControllerTests
         baseResponse?.Error.Should().Be("An unhandled exception was thrown by the application");
         baseResponse?.Response.Should().BeNull();
         baseResponse?.ResponseType.Should().BeNull();
+    }
+
+    [TestMethod]
+    public async Task AuthorizedAttributeAction_Should_Return_Valid_BaseResponse_With_Ok_Code_For_User()
+    {
+        //GIVEN
+        var provider = TestClaimsProvider.WithUserClaims();
+        var client = factory.CreateClientWithTestAuth(provider);
+
+        const string url = "api/WeatherForecast/AuthorizedAttributeAction";
+        var requestBody = new ExampleRequest("test");
+
+        //WHEN
+        var response = await client.PutAsJsonAsync(url, requestBody);
+
+        //THEN
+        response.EnsureSuccessStatusCode();
+
+        var responseToString = await response.Content.ReadAsStringAsync();
+        var baseResponse = JsonSerializer.Deserialize<BaseResponse<object>>(responseToString);
+        baseResponse.Should().NotBeNull();
+        baseResponse?.Code.Should().Be("ok");
+        baseResponse?.Error.Should().BeNull();
+        baseResponse?.Response.Should().NotBeNull();
+        baseResponse?.ResponseType.Should().Be(typeof(WeatherForecast[]).FullName);
+    }
+
+    [TestMethod]
+    public async Task Redirect_Should_Not_Change_Response()
+    {
+        //GIVEN
+        var provider = TestClaimsProvider.WithUserClaims();
+        var client = factory.CreateClientWithTestAuth(provider);
+
+        const string url = "api/WeatherForecast/Redirect";
+
+        //WHEN
+        var response = await client.GetAsync(url);
+
+        //THEN
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+
+        var responseToString = await response.Content.ReadAsStringAsync();
+        responseToString.Should().BeNullOrEmpty();
+    }
+
+    [TestMethod]
+    public async Task AdministratorOnlyAction_Should_Return_Valid_BaseResponse_With_Ok_Code_For_Admin()
+    {
+        //GIVEN
+        var provider = TestClaimsProvider.WithAdminClaims();
+        var client = factory.CreateClientWithTestAuth(provider);
+
+        const string url = "api/WeatherForecast/AdministratorOnlyAction";
+        var requestBody = new ExampleRequest("test");
+
+        //WHEN
+        var response = await client.PostAsJsonAsync(url, requestBody);
+
+        //THEN
+        response.EnsureSuccessStatusCode();
+
+        var responseToString = await response.Content.ReadAsStringAsync();
+        var baseResponse = JsonSerializer.Deserialize<BaseResponse<object>>(responseToString);
+        baseResponse.Should().NotBeNull();
+        baseResponse?.Code.Should().Be("ok");
+        baseResponse?.Error.Should().BeNull();
+        baseResponse?.Response.Should().NotBeNull();
+        baseResponse?.ResponseType.Should().Be(typeof(WeatherForecast[]).FullName);
+    }
+
+    [TestMethod]
+    public async Task FileZipResultAction_Should_Not_Change_Response()
+    {
+        //GIVEN
+        var client = factory.CreateClient();
+
+        const string url = "api/WeatherForecast/FileZipResultAction?payload=test";
+
+        //WHEN
+        var response = await client.GetAsync(url);
+
+        //THEN
+        response.EnsureSuccessStatusCode();
+        response.Content.Headers.GetValues("Content-Type").First().Should().StartWith("application/zip");
+        response.Content.Headers.GetValues("Content-Disposition").First().Should().StartWith("attachment; filename=20220105000000000.zip; filename*=UTF-8''20220105000000000.zip");
+        var responseToString = await response.Content.ReadAsStringAsync();
+        responseToString.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [TestMethod]
+    public async Task OctetStreamAction_Should_Not_Change_Response()
+    {
+        //GIVEN
+        var client = factory.CreateClient();
+
+        const string url = "api/WeatherForecast/OctetStreamAction?payload=test";
+
+        //WHEN
+        var response = await client.GetAsync(url);
+
+        //THEN
+        response.EnsureSuccessStatusCode();
+        response.Content.Headers.GetValues("Content-Type").First().Should().StartWith("application/octet-stream");
+        response.Content.Headers.GetValues("Content-Disposition").First().Should().StartWith("attachment; filename=20220105000000000.xlsx; filename*=UTF-8''20220105000000000.xlsx");
+        var responseToString = await response.Content.ReadAsStringAsync();
+        responseToString.Should().Be("test");
     }
 }

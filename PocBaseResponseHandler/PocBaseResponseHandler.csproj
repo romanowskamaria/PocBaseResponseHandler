@@ -7,11 +7,19 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="AspNetCore.HealthChecks.SignalR" Version="6.0.2" />
+        <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="10.0.1" />
         <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="2.2.0" />
+        <PackageReference Include="prometheus-net.AspNetCore" Version="6.0.0" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
     </ItemGroup>
 
     <ItemGroup>
         <InternalsVisibleTo Include="PocBaseResponseHandler.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="Filters\AlwaysResultFilter.cs" />
+      <Compile Remove="Filters\ResultFilter.cs" />
     </ItemGroup>
 </Project>

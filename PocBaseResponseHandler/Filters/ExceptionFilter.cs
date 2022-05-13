@@ -1,10 +1,10 @@
 ﻿namespace PocBaseResponseHandler.Filters;
 
 using System.Net.Mime;
-using Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.Formatters;
+using PocBaseResponseHandler.Exceptions;
 
 // Are not as flexible as error handling middleware.
 // Are good for trapping exceptions that occur within actions.
@@ -12,6 +12,7 @@ public class ExceptionFilter : IAsyncExceptionFilter
 {
     public async Task OnExceptionAsync(ExceptionContext context)
     {
+        context.HttpContext.Response.Headers.Add(BaseResponseHelpers.RESPONSE_HAS_BEEN_HANDLED, nameof(ExceptionFilter));
         var exceptionHandler = context.Exception switch
         {
             ApplicationException => HandleApplicationException,
@@ -43,6 +44,8 @@ public class ExceptionFilter : IAsyncExceptionFilter
     private void HandleApplicationException(ExceptionContext context)
     {
         var exception = context.Exception as ApplicationException;
+
+        if (exception is null) throw new UnhandledErrorException();
 
         var response = new BaseResponse<object>
         {
