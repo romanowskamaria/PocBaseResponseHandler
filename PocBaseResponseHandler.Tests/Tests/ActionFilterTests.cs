@@ -3,6 +3,7 @@ namespace PocBaseResponseHandler.Tests.Tests;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PocBaseResponseHandler.Models;
@@ -12,11 +13,54 @@ using PocBaseResponseHandler.Tests.Factories.Extensions;
 [TestClass]
 public class ActionFilterTests
 {
+    private static readonly string[] Summaries =
+    {
+        "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
+    };
+
     private readonly ApplicationFactory<Program> factory;
+    private readonly IEnumerable<WeatherForecast> result;
+    private readonly JsonSerializerOptions  jsonSerializerOptions = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
 
     public ActionFilterTests()
     {
         factory = new ApplicationFactory<Program>();
+        result = new List<WeatherForecast>(){
+            new()
+            {
+                Date = new DateTime(2022,05, 06),
+                TemperatureC = -20,
+                Summary = Summaries[2]
+            },
+            new()
+            {
+                Date = new DateTime(2022,05, 07),
+                TemperatureC = -10,
+                Summary = Summaries[5]
+            },
+            new()
+            {
+                Date = new DateTime(2022,05, 08),
+                TemperatureC = -5,
+                Summary = Summaries[6]
+            },
+            new()
+            {
+                Date = new DateTime(2022,05, 09),
+                TemperatureC = 10,
+                Summary = Summaries[9]
+            },
+            new()
+            {
+                Date = new DateTime(2022,05, 10),
+                TemperatureC = -30,
+                Summary = Summaries[0]
+            },
+        };
     }
 
     [TestMethod]
@@ -33,11 +77,11 @@ public class ActionFilterTests
         response.EnsureSuccessStatusCode();
 
         var responseToString = await response.Content.ReadAsStringAsync();
-        var baseResponse = JsonSerializer.Deserialize<BaseResponse<object>>(responseToString);
+        var baseResponse = JsonSerializer.Deserialize<BaseResponse<WeatherForecast[]>>(responseToString, jsonSerializerOptions);
         baseResponse.Should().NotBeNull();
         baseResponse?.Code.Should().Be("ok");
         baseResponse?.Error.Should().BeNull();
-        baseResponse?.Response.Should().NotBeNull();
+        baseResponse?.Response.Should().BeEquivalentTo(result);
         baseResponse?.ResponseType.Should().Be(typeof(WeatherForecast[]).FullName);
     }
 
@@ -78,11 +122,11 @@ public class ActionFilterTests
         response.EnsureSuccessStatusCode();
 
         var responseToString = await response.Content.ReadAsStringAsync();
-        var baseResponse = JsonSerializer.Deserialize<BaseResponse<object>>(responseToString);
+        var baseResponse = JsonSerializer.Deserialize<BaseResponse<WeatherForecast[]>>(responseToString, jsonSerializerOptions);
         baseResponse.Should().NotBeNull();
         baseResponse?.Code.Should().Be("ok");
         baseResponse?.Error.Should().BeNull();
-        baseResponse?.Response.Should().NotBeNull();
+        baseResponse?.Response.Should().BeEquivalentTo(result);;
         baseResponse?.ResponseType.Should().Be(typeof(WeatherForecast[]).FullName);
     }
 
@@ -194,11 +238,11 @@ public class ActionFilterTests
         response.EnsureSuccessStatusCode();
 
         var responseToString = await response.Content.ReadAsStringAsync();
-        var baseResponse = JsonSerializer.Deserialize<BaseResponse<object>>(responseToString);
+        var baseResponse = JsonSerializer.Deserialize<BaseResponse<WeatherForecast[]>>(responseToString, jsonSerializerOptions);
         baseResponse.Should().NotBeNull();
         baseResponse?.Code.Should().Be("ok");
         baseResponse?.Error.Should().BeNull();
-        baseResponse?.Response.Should().NotBeNull();
+        baseResponse?.Response.Should().BeEquivalentTo(result);
         baseResponse?.ResponseType.Should().Be(typeof(WeatherForecast[]).FullName);
     }
 
@@ -238,11 +282,11 @@ public class ActionFilterTests
         response.EnsureSuccessStatusCode();
 
         var responseToString = await response.Content.ReadAsStringAsync();
-        var baseResponse = JsonSerializer.Deserialize<BaseResponse<object>>(responseToString);
+        var baseResponse = JsonSerializer.Deserialize<BaseResponse<WeatherForecast[]>>(responseToString, jsonSerializerOptions);
         baseResponse.Should().NotBeNull();
         baseResponse?.Code.Should().Be("ok");
         baseResponse?.Error.Should().BeNull();
-        baseResponse?.Response.Should().NotBeNull();
+        baseResponse?.Response?.Should().BeEquivalentTo(result);
         baseResponse?.ResponseType.Should().Be(typeof(WeatherForecast[]).FullName);
     }
 

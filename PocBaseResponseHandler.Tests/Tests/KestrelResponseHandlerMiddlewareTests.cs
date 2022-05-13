@@ -253,7 +253,6 @@ public class KestrelResponseHandlerMiddlewareTests
         baseResponse?.ResponseType.Should().BeNull();
     }
 
-
     [TestMethod]
     public async Task OutsideControllerAction_Different_Model_With_Code_Property_Should_Return_BaseResponse_With_Code_Ok()
     {

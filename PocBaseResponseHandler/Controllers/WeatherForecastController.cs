@@ -16,17 +16,45 @@ public class WeatherForecastController : ControllerBase
         "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
     };
 
+    private readonly IEnumerable<WeatherForecast> result = new List<WeatherForecast>
+    {
+        new()
+        {
+            Date = new DateTime(2022, 05, 06),
+            TemperatureC = -20,
+            Summary = Summaries[2]
+        },
+        new()
+        {
+            Date = new DateTime(2022, 05, 07),
+            TemperatureC = -10,
+            Summary = Summaries[5]
+        },
+        new()
+        {
+            Date = new DateTime(2022, 05, 08),
+            TemperatureC = -5,
+            Summary = Summaries[6]
+        },
+        new()
+        {
+            Date = new DateTime(2022, 05, 09),
+            TemperatureC = 10,
+            Summary = Summaries[9]
+        },
+        new()
+        {
+            Date = new DateTime(2022, 05, 10),
+            TemperatureC = -30,
+            Summary = Summaries[0]
+        }
+    }.ToArray();
+
     //Endpoints like that (which return specific object) don't fill information about status code
     [HttpGet(Name = "WeatherForecast")]
     public IEnumerable<WeatherForecast> OkWeatherForecastAction()
     {
-        return Enumerable.Range(1, 5).Select(index => new WeatherForecast
-            {
-                Date = DateTime.Now.AddDays(index),
-                TemperatureC = Random.Shared.Next(-20, 55),
-                Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-            })
-            .ToArray();
+        return result;
     }
 
     [HttpDelete(Name = "BadRequest")]
@@ -44,13 +72,7 @@ public class WeatherForecastController : ControllerBase
     [HttpGet(Name = "OkWithContent")]
     public IActionResult OkWithContentAction()
     {
-        return Ok(Enumerable.Range(1, 5).Select(index => new WeatherForecast
-            {
-                Date = DateTime.Now.AddDays(index),
-                TemperatureC = Random.Shared.Next(-20, 55),
-                Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-            })
-            .ToArray());
+        return Ok(result);
     }
 
     [HttpPost(Name = "NotFound")]
@@ -96,13 +118,7 @@ public class WeatherForecastController : ControllerBase
     [Authorize]
     public IEnumerable<WeatherForecast> AuthorizedAttributeAction([FromBody] ExampleRequest request)
     {
-        return Enumerable.Range(1, 5).Select(index => new WeatherForecast
-            {
-                Date = DateTime.Now.AddDays(index),
-                TemperatureC = Random.Shared.Next(-20, 55),
-                Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-            })
-            .ToArray();
+        return result;
     }
 
     // Unauthorized exception from attribute is not handled by filers
@@ -112,13 +128,7 @@ public class WeatherForecastController : ControllerBase
     [Authorize(Roles = "Admin")]
     public IEnumerable<WeatherForecast> AdministratorOnlyAction([FromBody] ExampleRequest request)
     {
-        return Enumerable.Range(1, 5).Select(index => new WeatherForecast
-            {
-                Date = DateTime.Now.AddDays(index),
-                TemperatureC = Random.Shared.Next(-20, 55),
-                Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-            })
-            .ToArray();
+        return result;
     }
 
     [HttpGet]
