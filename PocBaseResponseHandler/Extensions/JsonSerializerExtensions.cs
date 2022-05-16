@@ -7,7 +7,10 @@ public static class JsonSerializerExtensions
 {
     public static string ToIndentedIgnoreNullJson(this object? self)
     {
-        if (self is null) return string.Empty;
+        if (self is null)
+        {
+            return string.Empty;
+        }
 
         var options = new JsonSerializerOptions
         {
@@ -21,9 +24,13 @@ public static class JsonSerializerExtensions
     public static bool TryDeserialize<T>(this string self, out T? result)
     {
         result = default;
+
         try
         {
-            if (string.IsNullOrWhiteSpace(self)) return false;
+            if (string.IsNullOrWhiteSpace(self))
+            {
+                return false;
+            }
 
             var options = new JsonSerializerOptions
             {

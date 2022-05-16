@@ -8,6 +8,7 @@ using PocBaseResponseHandler.Filters;
 using PocBaseResponseHandler.Handlers;
 using PocBaseResponseHandler.Infrastructure;
 using PocBaseResponseHandler.Middlewares;
+using PocBaseResponseHandler.ViewModels;
 using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -106,7 +107,7 @@ app.UseEndpoints(endpoints =>
 
     endpoints.MapGet("outsidecontroller_valid_baseresponse_with_header", async context =>
     {
-        context.Response.Headers.Add(BaseResponseHelpers.RESPONSE_HAS_BEEN_HANDLED, "CustomAction");
+        context.Response.Headers.Add(BaseResponseHelpers.ResponseHasBeenHandled, "CustomAction");
         await context.Response.WriteAsJsonAsync(new BaseResponse<string>
         {
             Code = "ok",

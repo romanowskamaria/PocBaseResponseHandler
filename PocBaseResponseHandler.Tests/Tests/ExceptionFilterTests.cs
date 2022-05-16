@@ -5,6 +5,7 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PocBaseResponseHandler.Tests.Factories;
+using PocBaseResponseHandler.ViewModels;
 
 [TestClass]
 public class ExceptionFilterTests

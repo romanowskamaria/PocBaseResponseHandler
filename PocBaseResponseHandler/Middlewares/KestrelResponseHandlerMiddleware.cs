@@ -4,6 +4,7 @@ using System.Net.Mime;
 using System.Text;
 using Microsoft.IO;
 using PocBaseResponseHandler.Extensions;
+using PocBaseResponseHandler.ViewModels;
 
 public class KestrelResponseHandlerMiddleware
 {
@@ -24,10 +25,12 @@ public class KestrelResponseHandlerMiddleware
 
         await next(httpContext);
 
-        if (ShouldResponseBeForwarded(httpContext))
+        var shouldResponseBeForwarded = ShouldResponseBeForwarded(httpContext);
+
+        if (shouldResponseBeForwarded)
         {
             responseStream.Position = 0;
-            await responseStream.CopyToAsync(originalResponseBodyStream);
+            await responseStream.CopyToAsync(originalResponseBodyStream, CancellationToken.None);
             return;
         }
 
@@ -35,28 +38,58 @@ public class KestrelResponseHandlerMiddleware
         using var currentResponseStreamReader = new StreamReader(responseStream);
         var currentResponse = await currentResponseStreamReader.ReadToEndAsync();
 
-        if (await HasResponseAlreadyBeenHandled(currentResponse, httpContext.Response.Headers, httpContext.Response.ContentType))
+        var hasResponseAlreadyBeenHandled = await HasResponseAlreadyBeenHandled(currentResponse, httpContext.Response.Headers, httpContext.Response.ContentType);
+
+        if (hasResponseAlreadyBeenHandled)
         {
-            httpContext.Response.Headers.Remove(BaseResponseHelpers.RESPONSE_HAS_BEEN_HANDLED);
+            httpContext.Response.Headers.Remove(BaseResponseHelpers.ResponseHasBeenHandled);
             responseStream.Position = 0;
-            await responseStream.CopyToAsync(originalResponseBodyStream);
+            await responseStream.CopyToAsync(originalResponseBodyStream, CancellationToken.None);
             return;
         }
 
-        await HandleOtherResponse(currentResponse, httpContext, originalResponseBodyStream, responseStream);
+        await HandleOtherResponseAsync(currentResponse, httpContext, originalResponseBodyStream, responseStream, CancellationToken.None);
     }
 
     private static bool ShouldResponseBeForwarded(HttpContext httpContext)
     {
         var isRedirect = httpContext.Response.StatusCode == 302;
+
+        if (isRedirect)
+        {
+            return true;
+        }
+
         var isSwitchingProtocolsRequest = httpContext.Response.StatusCode == 101;
+        
+        if (isSwitchingProtocolsRequest)
+        {
+            return true;
+        }
 
         var isMetricsRequest = httpContext.Request.Path.Value?
             .Contains("/metrics", StringComparison.InvariantCultureIgnoreCase) ?? false;
+
+        if (isMetricsRequest)
+        {
+            return true;
+        }
+
         var isSignalRNegotiateRequest = httpContext.Request.Path.Value?
             .Contains("Hub/negotiate", StringComparison.InvariantCultureIgnoreCase) ?? false;
+
+        if (isSignalRNegotiateRequest)
+        {
+            return true;
+        }
+
         var isSwaggerPage = httpContext.Request.Path.Value?
             .Contains("swagger", StringComparison.InvariantCultureIgnoreCase) ?? false;
+
+        if (isSwaggerPage)
+        {
+            return true;
+        }
 
         var isContentTypeFilled = (string?)httpContext.Response.ContentType is { };
         var isResponseContentTypeJson = httpContext.Response.ContentType?
@@ -65,35 +98,49 @@ public class KestrelResponseHandlerMiddleware
             .Contains(MediaTypeNames.Text.Plain, StringComparison.InvariantCultureIgnoreCase) ?? false;
         var isContentTypeSetAndItsNotJsonNorTextPlain = isContentTypeFilled && !isResponseContentTypeJson && !isResponseContentTypeTextPlain;
 
-        return isRedirect || isSwitchingProtocolsRequest || isMetricsRequest || isSignalRNegotiateRequest || isSwaggerPage || isContentTypeSetAndItsNotJsonNorTextPlain;
-    }
-
-    private static async Task<bool> HasResponseAlreadyBeenHandled(string currentResponse, IHeaderDictionary headerDictionary, string contentType)
-    {
-        var isResponseContentTypeJson = contentType?
-            .Contains("json", StringComparison.InvariantCultureIgnoreCase) ?? false;
-
-        if (!isResponseContentTypeJson) return false;
-
-        var existResponseHasBeenHandledHeader = headerDictionary.ContainsKey(BaseResponseHelpers.RESPONSE_HAS_BEEN_HANDLED);
-        if (currentResponse.TryDeserialize(out BaseResponse<object>? baseResponse))
-            return baseResponse is { } && existResponseHasBeenHandledHeader;
+        if (isContentTypeSetAndItsNotJsonNorTextPlain)
+        {
+            return true;
+        }
 
         return false;
     }
 
-    private static async Task HandleOtherResponse(string currentResponse, HttpContext httpContext, Stream originalResponseBodyStream, Stream responseStream)
+    private static Task<bool> HasResponseAlreadyBeenHandled(string? currentResponse, IHeaderDictionary headerDictionary, string? contentType)
     {
-        var baseResponse = httpContext.Response.StatusCode.MapToBaseResponse(currentResponse);
-        await WriteBaseResponseToResponseStream(baseResponse, httpContext, responseStream);
-        httpContext.Response.StatusCode = 200;
-        responseStream.Position = 0;
-        await responseStream.CopyToAsync(originalResponseBodyStream);
+        var isResponseContentTypeJson = contentType?
+            .Contains("json", StringComparison.InvariantCultureIgnoreCase) ?? false;
+
+        if (!isResponseContentTypeJson)
+        {
+            return Task.FromResult(false);
+        }
+
+        var existResponseHasBeenHandledHeader = headerDictionary.ContainsKey(BaseResponseHelpers.ResponseHasBeenHandled);
+        
+        if (currentResponse?.TryDeserialize(out BaseResponse<object>? baseResponse) ?? false)
+        {
+            return Task.FromResult(baseResponse is { } && existResponseHasBeenHandledHeader);
+        }
+
+        return Task.FromResult(false);
     }
 
-    private static async Task WriteBaseResponseToResponseStream(BaseResponse<object>? baseResponse, HttpContext httpContext, Stream responseStream)
+    private static async Task HandleOtherResponseAsync(string currentResponse, HttpContext httpContext, Stream originalResponseBodyStream, Stream responseStream, CancellationToken cancellationToken = default)
     {
-        if (baseResponse is null) return;
+        var baseResponse = httpContext.Response.StatusCode.MapToBaseResponse(currentResponse);
+        await WriteBaseResponseToResponseStreamAsync(baseResponse, httpContext, responseStream, cancellationToken);
+        httpContext.Response.StatusCode = 200;
+        responseStream.Position = 0;
+        await responseStream.CopyToAsync(originalResponseBodyStream, cancellationToken);
+    }
+
+    private static async Task WriteBaseResponseToResponseStreamAsync(BaseResponse<object>? baseResponse, HttpContext httpContext, Stream responseStream, CancellationToken cancellationToken = default)
+    {
+        if (baseResponse is null)
+        {
+            return;
+        }
 
         var newResponseJsonString = baseResponse.ToIndentedIgnoreNullJson();
         var responseBuffer = Encoding.UTF8.GetBytes(newResponseJsonString);
@@ -103,6 +150,6 @@ public class KestrelResponseHandlerMiddleware
 
         responseStream.Position = 0;
         responseStream.SetLength(0);
-        await responseStream.WriteAsync(responseBuffer);
+        await responseStream.WriteAsync(responseBuffer, cancellationToken);
     }
 }

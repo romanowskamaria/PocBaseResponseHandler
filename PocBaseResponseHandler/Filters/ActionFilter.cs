@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using PocBaseResponseHandler.Extensions;
+using PocBaseResponseHandler.ViewModels;
 
 // If exception then resultContext.Result is null
 // It runs before IAsyncExceptionFilter
@@ -31,16 +32,16 @@ public class ActionFilter : IAsyncActionFilter
             var baseResponse = resultContext.Result switch
             {
                 ObjectResult objectResult => MapObjectResultToBaseResponse(objectResult, statusCode),
-                _ => statusCode.MapToBaseResponse()
+                _ => statusCode.MapToBaseResponse(),
             };
-            resultContext.HttpContext.Response.Headers.Add(BaseResponseHelpers.RESPONSE_HAS_BEEN_HANDLED, nameof(ActionFilter));
+            resultContext.HttpContext.Response.Headers.Add(BaseResponseHelpers.ResponseHasBeenHandled, nameof(ActionFilter));
             resultContext.Result = new ObjectResult(baseResponse)
             {
                 ContentTypes = new MediaTypeCollection
                 {
-                    MediaTypeNames.Application.Json
+                    MediaTypeNames.Application.Json,
                 },
-                StatusCode = 200
+                StatusCode = 200,
             };
         }
     }

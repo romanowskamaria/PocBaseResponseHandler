@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using PocBaseResponseHandler.Exceptions;
+using PocBaseResponseHandler.ViewModels;
 
 // Are not as flexible as error handling middleware.
 // Are good for trapping exceptions that occur within actions.
@@ -12,11 +13,11 @@ public class ExceptionFilter : IAsyncExceptionFilter
 {
     public async Task OnExceptionAsync(ExceptionContext context)
     {
-        context.HttpContext.Response.Headers.Add(BaseResponseHelpers.RESPONSE_HAS_BEEN_HANDLED, nameof(ExceptionFilter));
+        context.HttpContext.Response.Headers.Add(BaseResponseHelpers.ResponseHasBeenHandled, nameof(ExceptionFilter));
         var exceptionHandler = context.Exception switch
         {
             ApplicationException => HandleApplicationException,
-            _ => new Action<ExceptionContext>(HandleUnknownException)
+            _ => new Action<ExceptionContext>(HandleUnknownException),
         };
 
         exceptionHandler.Invoke(context);
@@ -27,16 +28,16 @@ public class ExceptionFilter : IAsyncExceptionFilter
         var response = new BaseResponse<object>
         {
             Code = "unknown_error",
-            Error = "An unhandled error has occurred"
+            Error = "An unhandled error has occurred",
         };
 
         context.Result = new ObjectResult(response)
         {
             ContentTypes = new MediaTypeCollection
             {
-                MediaTypeNames.Application.Json
+                MediaTypeNames.Application.Json,
             },
-            StatusCode = 500
+            StatusCode = 500,
         };
         context.ExceptionHandled = true;
     }
@@ -50,16 +51,16 @@ public class ExceptionFilter : IAsyncExceptionFilter
         var response = new BaseResponse<object>
         {
             Code = exception.Code,
-            Error = exception.Message
+            Error = exception.Message,
         };
 
         context.Result = new ObjectResult(response)
         {
             ContentTypes = new MediaTypeCollection
             {
-                MediaTypeNames.Application.Json
+                MediaTypeNames.Application.Json,
             },
-            StatusCode = 500
+            StatusCode = 500,
         };
         context.ExceptionHandled = true;
     }

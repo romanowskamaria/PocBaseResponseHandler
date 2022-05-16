@@ -9,6 +9,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PocBaseResponseHandler.Models;
 using PocBaseResponseHandler.Tests.Factories;
 using PocBaseResponseHandler.Tests.Factories.Extensions;
+using PocBaseResponseHandler.ViewModels;
 
 [TestClass]
 public class ActionFilterTests
@@ -105,7 +106,7 @@ public class ActionFilterTests
         baseResponse?.Code.Should().Be("ok");
         baseResponse?.Error.Should().BeNull();
         baseResponse?.Response.Should().BeNull();
-        baseResponse?.ResponseType.Should().BeNull();
+        baseResponse?.ResponseType.Should().Be(typeof(OkResponse).FullName);
     }
 
     [TestMethod]

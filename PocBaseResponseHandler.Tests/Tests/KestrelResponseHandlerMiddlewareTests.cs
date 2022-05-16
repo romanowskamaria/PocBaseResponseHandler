@@ -8,6 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PocBaseResponseHandler.Models;
 using PocBaseResponseHandler.Tests.Factories;
 using PocBaseResponseHandler.Tests.Factories.Extensions;
+using PocBaseResponseHandler.ViewModels;
 
 [TestClass]
 public class KestrelResponseHandlerMiddlewareTests
@@ -220,7 +221,7 @@ public class KestrelResponseHandlerMiddlewareTests
             Response = new DateTime(2022, 01, 05),
             ResponseType = typeof(DateTime).FullName
         }));
-        baseResponse?.ResponseType.Should().BeNull();
+        baseResponse?.ResponseType.Should().Be(typeof(OkResponse).FullName);
     }
 
     [TestMethod]
@@ -250,7 +251,7 @@ public class KestrelResponseHandlerMiddlewareTests
             Response = new DateTime(2022, 01, 05),
             ResponseType = typeof(DateTime).FullName
         }));
-        baseResponse?.ResponseType.Should().BeNull();
+        baseResponse?.ResponseType.Should().Be(typeof(OkResponse).FullName);
     }
 
     [TestMethod]
@@ -280,7 +281,7 @@ public class KestrelResponseHandlerMiddlewareTests
             Description = new DateTime(2022, 01, 05),
             Info = typeof(DateTime).FullName
         }));
-        baseResponse?.ResponseType.Should().BeNull();
+        baseResponse?.ResponseType.Should().Be(typeof(OkResponse).FullName);
     }
 
     [TestMethod]
@@ -350,7 +351,7 @@ public class KestrelResponseHandlerMiddlewareTests
         baseResponse?.Error.Should().BeNullOrEmpty();
         baseResponse?.Response.Should().NotBeNull();
         baseResponse?.Response?.ToString().Should().Be("Testing");
-        baseResponse?.ResponseType.Should().BeNull();
+        baseResponse?.ResponseType.Should().Be(typeof(OkResponse).FullName);
     }
 
     [TestMethod]
@@ -374,6 +375,6 @@ public class KestrelResponseHandlerMiddlewareTests
         baseResponse?.Error.Should().BeNullOrEmpty();
         baseResponse?.Response.Should().NotBeNull();
         baseResponse?.Response?.ToString().Should().Be("Testing");
-        baseResponse?.ResponseType.Should().BeNull();
+        baseResponse?.ResponseType.Should().Be(typeof(OkResponse).FullName);
     }
 }
